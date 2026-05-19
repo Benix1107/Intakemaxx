@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nutrition History - Tracker App</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="app.js"></script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .app-container {
+            max-width: 450px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background-color: #ffffff;
+            position: relative;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .chart-path {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: dash 2s ease-in-out forwards;
+        }
+        @keyframes dash {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+</style>
+</head>
+<body class="flex justify-center items-start sm:py-8 bg-slate-50">
+ 
+    <main class="app-container flex flex-col w-full pb-24">
+<!-- Header Section -->
+<header class="px-6 pt-8 pb-4">
+<h1 class="text-3xl font-bold text-slate-900 tracking-tight">History</h1>
+<p class="text-slate-500 mt-1 font-medium">Your nutrition overview</p>
+</header>
+ 
+        <!-- Main Content -->
+<section class="px-6 space-y-4 overflow-y-auto">
+<!-- Streak Card -->
+<div class="bg-white border-2 border-slate-100 rounded-3xl p-6 shadow-sm hover:border-orange-100 transition-colors group">
+<div class="flex flex-col items-center justify-center text-center">
+<span class="text-slate-500 font-semibold uppercase tracking-wider text-xs mb-2">Your Streak</span>
+<div class="flex items-center gap-3">
+<span class="text-6xl font-black text-slate-800" id="streak">0</span>
+<div class="bg-orange-50 p-3 rounded-2xl group-hover:scale-110 transition-transform">
+<i data-lucide="flame" class="w-8 h-8 text-orange-500 fill-orange-500"></i>
+</div>
+</div>
+</div>
+</div>
+ 
+            <!-- Stats Grid -->
+<div class="grid grid-cols-2 gap-4">
+<!-- 7-day Avg -->
+<div class="bg-white border-2 border-slate-100 rounded-3xl p-5 shadow-sm hover:border-blue-100 transition-colors">
+<div class="flex flex-col items-center text-center">
+<span class="text-slate-500 font-semibold uppercase tracking-wider text-[10px] mb-3">7-day avg</span>
+<span class="text-4xl font-bold text-slate-800 mb-1" id="week-avg">0</span>
+<span class="text-slate-400 text-sm font-medium">kcal/day</span>
+</div>
+</div>
+ 
+                <!-- Total Logs -->
+<div class="bg-white border-2 border-slate-100 rounded-3xl p-5 shadow-sm hover:border-green-100 transition-colors">
+<div class="flex flex-col items-center text-center">
+<span class="text-slate-500 font-semibold uppercase tracking-wider text-[10px] mb-3">Total logs</span>
+<span class="text-4xl font-bold text-slate-800 mb-1" id="total-logs">0</span>
+<span class="text-slate-400 text-sm font-medium">food entries</span>
+</div>
+</div>
+</div>
+ 
+            <!-- Chart Card -->
+<div class="bg-white border-2 border-slate-100 rounded-3xl p-6 shadow-sm">
+<div class="flex justify-between items-center mb-6">
+<span class="text-slate-800 font-bold uppercase tracking-wider text-sm">LAST 7 DAYS</span>
+<div class="bg-slate-50 p-1.5 rounded-lg">
+<i data-lucide="trending-up" class="w-4 h-4 text-slate-400"></i>
+</div>
+</div>
+ 
+                <!-- Simple SVG Chart -->
+<div class="relative h-32 w-full mb-4">
+<svg viewBox="0 0 400 100" class="w-full h-full">
+<!-- Background Grid Lines (Optional) -->
+<line x1="0" y1="80" x2="400" y2="80" stroke="#f1f5f9" stroke-width="1" />
+<!-- Smooth Line Path -->
+<path 
+                            d="M0,70 C50,65 80,60 120,62 C160,65 180,40 220,35 C260,30 300,70 340,75 C380,80 400,72 400,72" 
+                            fill="none" 
+                            stroke="#334155" 
+                            stroke-width="3" 
+                            stroke-linecap="round"
+                            class="chart-path"
+                        />
+</svg>
+</div>
+ 
+                <!-- Days of the week -->
+<div class="flex justify-between text-slate-500 text-xs font-semibold px-1">
+<span>Mon</span>
+<span>Tue</span>
+<span>Wed</span>
+<span>Thu</span>
+<span>Fri</span>
+<span>Sat</span>
+<span>Sun</span>
+</div>
+</div>
+ 
+        </section>
+ 
+        <!-- Bottom Navigation -->
+<nav class="fixed bottom-0 w-full max-w-[450px] bg-white border-t border-slate-100 px-6 py-4 flex justify-between items-center z-10">
+<button data-nav-button="today" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-900 transition-colors">
+<i data-lucide="home" class="w-6 h-6"></i>
+<span class="text-[10px] font-bold uppercase">Today</span>
+</button>
+<button data-nav-button="scan" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-900 transition-colors">
+<i data-lucide="scan-barcode" class="w-6 h-6"></i>
+<span class="text-[10px] font-bold uppercase">Scan</span>
+</button>
+ 
+            <!-- Active State -->
+<button data-nav-button="history" class="flex flex-col items-center gap-1 text-slate-900">
+<div class="relative">
+<i data-lucide="history" class="w-6 h-6"></i>
+<div class="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full border-2 border-white"></div>
+</div>
+<span class="text-[10px] font-bold uppercase">History</span>
+</button>
+ 
+            <button class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-900 transition-colors">
+<i data-lucide="settings" class="w-6 h-6"></i>
+<span class="text-[10px] font-bold uppercase">Settings</span>
+</button>
+</nav>
+ 
+    </main>
+ 
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Update on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            app.updateNavigation();
+            updateHistoryStats();
+        });
+
+        function updateHistoryStats() {
+            const weekStats = app.getWeekStats();
+            const weekValues = Object.values(weekStats);
+            const avgCalories = Math.round(weekValues.reduce((a, b) => a + b, 0) / 7);
+            
+            // Count total logs across all days
+            let totalLogs = 0;
+            for (const date in app.foodLog) {
+                totalLogs += app.foodLog[date].length;
+            }
+
+            document.getElementById('week-avg').textContent = avgCalories;
+            document.getElementById('total-logs').textContent = totalLogs;
+            document.getElementById('streak').textContent = calculateStreak();
+
+            // Update chart with real data
+            updateChart(weekValues);
+        }
+
+        function calculateStreak() {
+            // Simple streak: count consecutive days with calories logged
+            let streak = 0;
+            const today = new Date();
+            
+            for (let i = 0; i < 365; i++) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                const dateStr = date.toISOString().split('T')[0];
+                
+                if (app.foodLog[dateStr] && app.foodLog[dateStr].length > 0) {
+                    streak++;
+                } else if (i > 0) {
+                    break;
+                }
+            }
+            return streak;
+        }
+
+        function updateChart(weekValues) {
+            // Normalize values for SVG path - handle zero values better
+            const maxValue = Math.max(...weekValues, 100); // Min scale of 100 for better visualization
+            const svgHeight = 100;
+            const pointSpacing = 400 / 6; // 6 intervals for 7 days
+            
+            let pathData = `M0,${svgHeight - (weekValues[0] / maxValue * 80)}`;
+            
+            for (let i = 1; i < 7; i++) {
+                const x = i * pointSpacing;
+                const y = svgHeight - (weekValues[i] / maxValue * 80);
+                // Use Bezier curves for smooth line
+                const cpx = x - pointSpacing / 2;
+                const prevY = svgHeight - (weekValues[i-1] / maxValue * 80);
+                pathData += ` C${cpx},${prevY} ${cpx},${y} ${x},${y}`;
+            }
+            
+            const path = document.querySelector('.chart-path');
+            if (path) {
+                path.setAttribute('d', pathData);
+                // Restart animation
+                path.style.animation = 'none';
+                setTimeout(() => {
+                    path.style.animation = '';
+                }, 10);
+            }
+        }
+
+        // Optional: Add interaction to stat cards
+        document.querySelectorAll('.app-container .bg-white').forEach(card => {
+            card.addEventListener('click', function() {
+                const num = this.querySelector('.text-4xl, .text-6xl');
+                if (num) {
+                    let current = parseInt(num.textContent);
+                    num.textContent = current + 1;
+                    // Simple animation feedback
+                    num.classList.add('scale-110', 'text-blue-500');
+                    setTimeout(() => {
+                        num.classList.remove('scale-110', 'text-blue-500');
+                    }, 200);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

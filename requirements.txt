@@ -1,0 +1,24 @@
+# CalTrack Backend - Node.js Dependencies Documentation
+# This is a Node.js/Express project, not Python
+# For installation, use: npm install
+
+# Node.js Runtime Requirements
+node>=14.0.0
+npm>=6.0.0
+
+# NPM Dependencies (see package.json)
+# Production:
+express==4.18.2
+cors==2.8.5
+axios==1.6.0
+dotenv==16.3.1
+oauth-1.0a==2.2.6
+
+# Development:
+nodemon==3.0.1
+
+# System Requirements
+# - Express.js backend server
+# - CORS enabled for cross-origin requests
+# - OAuth 1.0a for FatSecret API authentication
+# - QuaggaJS for barcode scanning (frontend)

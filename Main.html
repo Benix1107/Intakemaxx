@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calorie Tracker - Daily Log</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="app.js"></script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .app-container {
+            max-width: 450px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background-color: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .progress-ring {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+</style>
+</head>
+<body class="text-slate-900">
+ 
+    <div class="app-container">
+<!-- Header -->
+<header class="px-6 pt-8 pb-4 flex justify-between items-start">
+<div>
+<h2 id="current-day" class="text-2xl font-bold text-slate-800">Monday</h2>
+<p id="current-date" class="text-slate-500 font-medium">October 24</p>
+</div>
+<button id="add-food-btn" class="p-2 border-2 border-emerald-500 text-emerald-500 rounded-xl hover:bg-emerald-50 transition-colors">
+<i data-lucide="plus" class="w-6 h-6"></i>
+</button>
+</header>
+ 
+        <!-- Date Selector -->
+<div class="flex justify-center items-center gap-4 py-4">
+<button id="prev-day-btn" class="text-slate-400 hover:text-emerald-500">
+<i data-lucide="chevron-left" class="w-6 h-6"></i>
+</button>
+<div id="today-indicator" class="px-8 py-1.5 border-2 border-emerald-500 rounded-full text-emerald-600 font-semibold text-sm">
+                Today
+</div>
+<button id="next-day-btn" class="text-slate-400 hover:text-emerald-500">
+<i data-lucide="chevron-right" class="w-6 h-6"></i>
+</button>
+</div>
+ 
+        <!-- Summary Card -->
+<main class="px-4 mt-2">
+<div class="bg-white border border-slate-200 rounded-[2.5rem] p-6 shadow-sm flex items-center justify-between gap-4">
+<!-- Circular Progress -->
+<div class="relative flex items-center justify-center w-32 h-32">
+<svg class="w-full h-full">
+<circle class="text-slate-100" stroke-width="8" stroke="currentColor" fill="transparent" r="54" cx="64" cy="64"/>
+<circle class="text-emerald-500 progress-ring" stroke-width="8" stroke-dasharray="339.29" stroke-dashoffset="339.29" stroke-linecap="round" stroke="currentColor" fill="transparent" r="54" cx="64" cy="64"/>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cal Left</span>
+<span class="text-xl font-bold leading-none"><span id="cal-left">2000</span></span>
+</div>
+</div>
+ 
+                <!-- Stats -->
+<div class="flex-1 space-y-3">
+<div>
+<p class="text-[10px] font-bold text-slate-400 uppercase">Consumed</p>
+<p class="text-xl font-bold"><span id="calories-consumed">0</span> <span class="text-sm font-normal text-slate-500">kcal</span></p>
+</div>
+<div class="space-y-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-blue-500"></div>
+<span class="text-xs font-medium text-slate-600">Protein</span>
+</div>
+<span class="text-xs font-bold"><span id="protein">0</span>g</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-orange-400"></div>
+<span class="text-xs font-medium text-slate-600">Carbs</span>
+</div>
+<span class="text-xs font-bold"><span id="carbs">0</span>g</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-rose-500"></div>
+<span class="text-xs font-medium text-slate-600">Fat</span>
+</div>
+<span class="text-xs font-bold"><span id="fat">0</span>g</span>
+</div>
+</div>
+</div>
+</div>
+ 
+            <!-- Empty State / Food List -->
+<div id="empty-state" class="mt-16 flex flex-col items-center text-center px-8">
+<div class="w-20 h-20 rounded-full border-2 border-slate-900 flex items-center justify-center mb-6">
+<i data-lucide="utensils" class="w-10 h-10 text-slate-900"></i>
+</div>
+<h3 class="text-xl font-bold text-slate-800 mb-1">No food logged yet</h3>
+<p class="text-slate-400 text-sm mb-8">Scan a barcode to get started</p>
+<button id="scan-btn-empty" class="flex items-center gap-3 px-10 py-3 border-2 border-emerald-500 rounded-2xl text-emerald-600 font-bold hover:bg-emerald-50 transition-all active:scale-95">
+<i data-lucide="scan-barcode" class="w-6 h-6"></i>
+                    Scan Food
+</button>
+</div>
+
+<!-- Food Items List -->
+<div id="food-list" class="hidden mt-6 space-y-3">
+</div>
+</main>
+ 
+        <!-- Bottom Navigation -->
+<nav class="mt-auto border-t border-slate-100 bg-white flex justify-around items-center py-4 px-2">
+<button data-nav-button="today" class="flex flex-col items-center gap-1 text-emerald-600 group">
+<i data-lucide="home" class="w-6 h-6"></i>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Today</span>
+</button>
+<button data-nav-button="scan" class="flex flex-col items-center gap-1 text-slate-400 hover:text-emerald-500 transition-colors">
+<i data-lucide="scan" class="w-6 h-6"></i>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Scan</span>
+</button>
+<button data-nav-button="history" class="flex flex-col items-center gap-1 text-slate-400 hover:text-emerald-500 transition-colors">
+<i data-lucide="history" class="w-6 h-6"></i>
+<span class="text-[10px] font-bold uppercase tracking-tighter">History</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400 hover:text-emerald-500 transition-colors">
+<i data-lucide="settings" class="w-6 h-6"></i>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Settings</span>
+</button>
+</nav>
+</div>
+ 
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // DOM Elements
+        const addFoodBtn = document.getElementById('add-food-btn');
+        const scanBtnEmpty = document.getElementById('scan-btn-empty');
+        const prevDayBtn = document.getElementById('prev-day-btn');
+        const nextDayBtn = document.getElementById('next-day-btn');
+        const todayIndicator = document.getElementById('today-indicator');
+        const emptyState = document.getElementById('empty-state');
+        const foodList = document.getElementById('food-list');
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            app.updateNavigation();
+            updateDisplay();
+        });
+
+        // Add Food Button - redirect to Scan
+        addFoodBtn.addEventListener('click', () => {
+            window.location.href = 'Scan.html';
+        });
+
+        // Scan Button (empty state)
+        scanBtnEmpty.addEventListener('click', () => {
+            window.location.href = 'Scan.html';
+        });
+
+        // Date Navigation
+        prevDayBtn.addEventListener('click', () => {
+            const currentDate = new Date(app.getCurrentDate());
+            currentDate.setDate(currentDate.getDate() - 1);
+            app.setCurrentDate(currentDate.toISOString().split('T')[0]);
+            updateDisplay();
+        });
+
+        nextDayBtn.addEventListener('click', () => {
+            const currentDate = new Date(app.getCurrentDate());
+            currentDate.setDate(currentDate.getDate() + 1);
+            app.setCurrentDate(currentDate.toISOString().split('T')[0]);
+            updateDisplay();
+        });
+
+        function updateDisplay() {
+            const currentDate = app.getCurrentDate();
+            const stats = app.getStatsForDate(currentDate);
+            const isToday = currentDate === new Date().toISOString().split('T')[0];
+
+            // Update date display
+            updateDateDisplay(currentDate, isToday);
+
+            // Update stats
+            updateStats(stats);
+
+            // Update food display
+            if (stats.items.length === 0) {
+                emptyState.classList.remove('hidden');
+                foodList.classList.add('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                foodList.classList.remove('hidden');
+                displayFoodItems(stats.items);
+            }
+        }
+
+        function updateDateDisplay(dateStr, isToday) {
+            const date = new Date(dateStr);
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            
+            document.getElementById('current-day').textContent = days[date.getDay()];
+            document.getElementById('current-date').textContent = `${months[date.getMonth()]} ${date.getDate()}`;
+
+            // Update "Today" indicator
+            if (isToday) {
+                todayIndicator.textContent = 'Today';
+            } else {
+                todayIndicator.textContent = `${date.getDate()}/${date.getMonth() + 1}`;
+            }
+        }
+
+        function displayFoodItems(items) {
+            foodList.innerHTML = '';
+            items.forEach((food, index) => {
+                const div = document.createElement('div');
+                div.className = 'bg-slate-50 border border-slate-200 rounded-xl p-4 flex justify-between items-start hover:bg-slate-100 transition-colors group';
+                div.innerHTML = `
+                    <div class="flex-1">
+                        <p class="font-semibold text-slate-800">${food.name}</p>
+                        <p class="text-sm text-slate-500">${food.quantity}g · ${food.calories} kcal</p>
+                        <div class="flex gap-4 mt-2 text-xs text-slate-600">
+                            <span>Protein: ${(parseFloat(food.protein) || 0).toFixed(1)}g</span>
+                            <span>Carbs: ${(parseFloat(food.carbs) || 0).toFixed(1)}g</span>
+                            <span>Fat: ${(parseFloat(food.fat) || 0).toFixed(1)}g</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end gap-2">
+                        <div class="text-right">
+                            <p class="font-bold text-emerald-600">${food.calories}</p>
+                            <p class="text-xs text-slate-400">kcal</p>
+                        </div>
+                        <button class="p-2 rounded-lg bg-red-100 hover:bg-red-200 text-red-600 opacity-0 group-hover:opacity-100 transition-opacity delete-food-btn" data-index="${index}">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                `;
+                foodList.appendChild(div);
+
+                // Add delete event listener
+                const deleteBtn = div.querySelector('.delete-food-btn');
+                deleteBtn.addEventListener('click', () => {
+                    const currentDate = app.getCurrentDate();
+                    app.removeFood(currentDate, index);
+                    updateDisplay();
+                });
+            });
+            
+            // Recreate icons for new elements
+            lucide.createIcons();
+        }
+
+        function updateStats(stats) {
+            const dailyGoal = 2000;
+
+            document.getElementById('calories-consumed').textContent = stats.calories;
+            document.getElementById('protein').textContent = Math.round(stats.protein);
+            document.getElementById('carbs').textContent = Math.round(stats.carbs);
+            document.getElementById('fat').textContent = Math.round(stats.fat);
+            
+            const caloriesLeft = Math.max(0, dailyGoal - stats.calories);
+            document.getElementById('cal-left').textContent = caloriesLeft;
+
+            // Update progress ring
+            const circle = document.querySelector('.progress-ring');
+            const radius = circle.r.baseVal.value;
+            const circumference = radius * 2 * Math.PI;
+            const percentage = Math.min(stats.calories / dailyGoal, 1);
+            circle.style.strokeDashoffset = circumference - (circumference * percentage);
+        }
+    </script>
+</body>
+</html>

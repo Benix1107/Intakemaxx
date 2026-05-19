@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scan Food - Calorie Tracker</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+<script src="app.js"></script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #000;
+        }
+        .app-container {
+            max-width: 450px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background-color: #000;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            aspect-ratio: 9 / 16;
+        }
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        #scanner {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background: #000;
+            overflow: hidden;
+        }
+        #scanner video {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        #scanner canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .scan-hud {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 50;
+        }
+        .scan-corners {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+        }
+        .corner {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #10b981;
+        }
+        .corner.top-left {
+            top: 0;
+            left: 0;
+            border-right: none;
+            border-bottom: none;
+        }
+        .corner.top-right {
+            top: 0;
+            right: 0;
+            border-left: none;
+            border-bottom: none;
+        }
+        .corner.bottom-left {
+            bottom: 0;
+            left: 0;
+            border-right: none;
+            border-top: none;
+        }
+        .corner.bottom-right {
+            bottom: 0;
+            right: 0;
+            border-left: none;
+            border-top: none;
+        }
+        .controls {
+            pointer-events: auto;
+        }
+        .header {
+            pointer-events: auto;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-scanning {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: #86efac;
+        }
+        .status-success {
+            background-color: rgba(34, 197, 94, 0.3);
+            color: #22c55e;
+        }
+        .status-error {
+            background-color: rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+        .loading-spinner {
+            border: 3px solid rgba(16, 185, 129, 0.2);
+            border-top: 3px solid #10b981;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+</style>
+</style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Scanner Container for QuaggaJS -->
+        <div id="scanner" style="width: 100%; height: 100%;"></div>
+
+        <!-- HUD Overlay -->
+        <div class="scan-hud">
+            <!-- Header -->
+            <div class="header px-6 pt-6 pb-2 flex justify-between items-center relative z-10">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Scan Food</h2>
+                    <div class="flex items-center gap-2 mt-2">
+                        <div class="loading-spinner"></div>
+                        <p id="scan-status" class="text-emerald-400 font-medium text-sm">Scanning...</p>
+                    </div>
+                </div>
+                <button id="close-camera" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors">
+                    <i data-lucide="x" class="w-6 h-6 text-white"></i>
+                </button>
+            </div>
+
+            <!-- Scanning Frame -->
+            <div class="flex items-center justify-center flex-1">
+                <div class="scan-corners">
+                    <div class="corner top-left"></div>
+                    <div class="corner top-right"></div>
+                    <div class="corner bottom-left"></div>
+                    <div class="corner bottom-right"></div>
+                </div>
+            </div>
+
+            <!-- Bottom Controls -->
+            <div class="controls px-6 pb-6">
+                <div id="scan-result" class="hidden mb-4 p-4 bg-emerald-500/20 rounded-2xl border border-emerald-500/50">
+                    <h4 class="text-white font-bold mb-2">Erkannt: <span id="result-barcode" class="text-emerald-400"></span></h4>
+                    <p id="result-product" class="text-white text-sm"></p>
+                </div>
+                <button id="manual-entry-btn" class="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl transition-colors flex items-center justify-center gap-2 mb-3">
+                    <i data-lucide="plus" class="w-6 h-6"></i>
+                    Manual Entry
+                </button>
+                <button id="toggle-camera" class="w-full py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-2xl transition-colors flex items-center justify-center gap-2 border border-white/20">
+                    <i data-lucide="camera" class="w-6 h-6"></i>
+                    Toggle Scanner
+                </button>
+            </div>
+        </div>
+
+        <!-- Manual Entry Modal (hidden by default) -->
+        <div id="entry-modal" class="hidden fixed inset-0 bg-black/50 flex items-end z-50">
+            <div class="bg-white w-full rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-slate-900">Add Food</h3>
+                    <button id="close-modal" class="p-2 hover:bg-slate-100 rounded-lg">
+                        <i data-lucide="x" class="w-6 h-6 text-slate-600"></i>
+                    </button>
+                </div>
+
+                <form id="food-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">Food Name</label>
+                        <input type="text" id="food-name" class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-500" placeholder="e.g., Apple" required>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">Calories</label>
+                            <input type="number" id="food-calories" class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-500" placeholder="0" value="0" min="0" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">Quantity</label>
+                            <input type="number" id="food-quantity" class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-500" placeholder="1" value="1" min="0.1" step="0.1" required>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">Protein (g)</label>
+                            <input type="number" id="food-protein" class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-500" placeholder="0" value="0" min="0" step="0.1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">Carbs (g)</label>
+                            <input type="number" id="food-carbs" class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-500" placeholder="0" value="0" min="0" step="0.1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">Fat (g)</label>
+                            <input type="number" id="food-fat" class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-500" placeholder="0" value="0" min="0" step="0.1">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full py-3 mt-6 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl transition-colors">
+                        Add Food
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Product Lookup Modal -->
+        <div id="product-modal" class="hidden fixed inset-0 bg-black/50 flex items-end z-50">
+            <div class="bg-white w-full rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-slate-900">Product Found</h3>
+                    <button id="close-product-modal" class="p-2 hover:bg-slate-100 rounded-lg">
+                        <i data-lucide="x" class="w-6 h-6 text-slate-600"></i>
+                    </button>
+                </div>
+
+                <div id="product-details" class="space-y-4">
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700">Product Name</label>
+                        <p id="product-name" class="text-lg font-bold text-slate-900 mt-1"></p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm font-semibold text-slate-700">Energy (kcal/100g)</label>
+                            <p id="product-energy" class="text-lg font-bold text-slate-900 mt-1">-</p>
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold text-slate-700">Quantity (g)</label>
+                            <input type="number" id="product-quantity" class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-500" placeholder="100" value="100" min="0.1" step="0.1">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="text-sm font-semibold text-slate-700">Protein (g)</label>
+                            <p id="product-protein" class="text-lg font-bold text-slate-900 mt-1">-</p>
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold text-slate-700">Carbs (g)</label>
+                            <p id="product-carbs" class="text-lg font-bold text-slate-900 mt-1">-</p>
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold text-slate-700">Fat (g)</label>
+                            <p id="product-fat" class="text-lg font-bold text-slate-900 mt-1">-</p>
+                        </div>
+                    </div>
+
+                    <button id="add-scanned-food" class="w-full py-3 mt-6 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl transition-colors">
+                        Add to Tracker
+                    </button>
+                    <button id="skip-product" class="w-full py-3 bg-slate-200 hover:bg-slate-300 text-slate-900 font-bold rounded-2xl transition-colors">
+                        Skip & Continue Scanning
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // DOM Elements
+        const scanner = document.getElementById('scanner');
+        const toggleCameraBtn = document.getElementById('toggle-camera');
+        const closeCameraBtn = document.getElementById('close-camera');
+        const manualEntryBtn = document.getElementById('manual-entry-btn');
+        const entryModal = document.getElementById('entry-modal');
+        const closeModalBtn = document.getElementById('close-modal');
+        const foodForm = document.getElementById('food-form');
+        const scanStatus = document.getElementById('scan-status');
+        const scanResult = document.getElementById('scan-result');
+        const productModal = document.getElementById('product-modal');
+        const closeProductModalBtn = document.getElementById('close-product-modal');
+        const addScannedFoodBtn = document.getElementById('add-scanned-food');
+        const skipProductBtn = document.getElementById('skip-product');
+
+        let scannerActive = false;
+        let lastScannedBarcode = null;
+        let lastScannedProduct = null;
+        let debounceTimer = null;
+
+        // Backend API Configuration
+        const API_BASE_URL = 'http://localhost:3000/api';
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            app.updateNavigation();
+            initializeScanner();
+        });
+
+        // Initialize Quagga Scanner
+        async function initializeScanner() {
+            try {
+                await Quagga.init({
+                    inputStream: {
+                        type: 'LiveStream',
+                        constraints: {
+                            width: { ideal: 1024 },
+                            height: { ideal: 1365 },
+                            facingMode: 'environment',
+                            aspectRatio: { ideal: 9/16 }
+                        },
+                        target: document.querySelector('#scanner'),
+                        area: {
+                            top: '0%',
+                            right: '0%',
+                            left: '0%',
+                            bottom: '0%'
+                        }
+                    },
+                    decoder: {
+                        readers: ['ean_reader', 'ean_8_reader', 'code_128_reader', 'code_39_reader', 'upc_reader', 'upc_e_reader'],
+                        debug: {
+                            showCanvas: true,
+                            showPatternName: false,
+                            showConfidence: false,
+                            showCodeName: false
+                        }
+                    },
+                    locator: {
+                        halfSample: true,
+                        patchSize: 'medium'
+                    },
+                    numOfWorkers: 4,
+                    frequency: 10
+                }, function(err) {
+                    if (err) {
+                        console.error('Quagga initialization error:', err);
+                        scanStatus.textContent = 'Kamera-Fehler';
+                        return;
+                    }
+                    console.log('Quagga initialized successfully');
+                    Quagga.start();
+                    scannerActive = true;
+                    scanStatus.textContent = 'Scanning...';
+                    
+                    // Get video element and set proper dimensions
+                    const video = document.querySelector('#scanner video');
+                    if (video) {
+                        video.style.width = '100%';
+                        video.style.height = '100%';
+                        video.style.objectFit = 'cover';
+                    }
+                });
+
+                Quagga.onDetected(onBarcodeDetected);
+                Quagga.onProcessed(onFrameProcessed);
+
+            } catch (error) {
+                console.error('Scanner initialization failed:', error);
+                scanStatus.textContent = 'Scanner fehler';
+            }
+        }
+
+        // Barcode Detection Handler
+        function onBarcodeDetected(result) {
+            if (!result || !result.codeResult) return;
+            
+            const code = result.codeResult.code ? result.codeResult.code.trim() : null;
+            
+            if (code && code !== lastScannedBarcode && scannerActive) {
+                lastScannedBarcode = code;
+                console.log('Barcode detected:', code, 'Type:', result.codeResult.format);
+                scanStatus.textContent = 'Barcode erkannt: ' + code;
+                
+                // Clear previous debounce
+                if (debounceTimer) clearTimeout(debounceTimer);
+                
+                // Pause scanner temporarily
+                try {
+                    Quagga.stop();
+                    scannerActive = false;
+                } catch (e) {
+                    console.error('Error stopping scanner:', e);
+                }
+
+                // Look up product
+                debounceTimer = setTimeout(() => {
+                    lookupProduct(code);
+                }, 800);
+            }
+        }
+
+        function onFrameProcessed(result) {
+            // Optional: Add visual feedback for frame processing
+            if (result && result.codeResult) {
+                // Barcode is being tracked
+            }
+        }
+
+        // Product Lookup Function (FatSecret Backend)
+        async function lookupProduct(barcode) {
+            scanStatus.textContent = 'Suche auf FatSecret...';
+            
+            // Clean and normalize barcode
+            const cleanBarcode = barcode.trim().replace(/[^0-9]/g, '');
+            console.log('\n🔍 FRONTEND BARCODE LOOKUP');
+            console.log('📦 Original Barcode:', barcode);
+            console.log('🧹 Cleaned Barcode:', cleanBarcode);
+            
+            try {
+                // Call backend endpoint
+                const apiUrl = `${API_BASE_URL}/food/barcode/${cleanBarcode}`;
+                console.log('🌐 API URL:', apiUrl);
+                
+                const response = await fetch(apiUrl, { 
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                console.log('📡 Response Status:', response.status, response.statusText);
+                
+                if (!response.ok) {
+                    throw new Error(`Backend error: ${response.status} ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('✅ Parsed Response:', JSON.stringify(data, null, 2));
+
+                // Check if food found
+                if (data.foods && data.foods.food) {
+                    let foods = data.foods.food;
+                    
+                    // Ensure foods is an array
+                    if (!Array.isArray(foods)) {
+                        foods = [foods];
+                    }
+                    
+                    console.log('🍔 Found', foods.length, 'products');
+                    
+                    if (foods.length > 0) {
+                        // Use first result
+                        const food = foods[0];
+                        
+                        const productInfo = {
+                            name: food.food_name || 'Unbekanntes Produkt',
+                            energy: parseFloat(food.food_calories) || 0,
+                            protein: parseFloat(food.food_protein) || 0,
+                            carbs: parseFloat(food.food_carbohydrate) || 0,
+                            fat: parseFloat(food.food_fat) || 0,
+                            barcode: cleanBarcode,
+                            fatSecretId: food.food_id
+                        };
+
+                        console.log('✨ Product Info:', productInfo);
+                        showProductModal(productInfo);
+                        return;
+                    }
+                }
+
+                // No result found
+                console.log('⚠️ No products found in response');
+                console.log('Response structure:', {
+                    hasFoods: !!data.foods,
+                    hasFood: !!data.foods?.food,
+                    foodLength: data.foods?.food?.length || 0
+                });
+                
+                scanStatus.textContent = 'Produkt nicht gefunden';
+                setTimeout(() => {
+                    scanStatus.textContent = 'Bitte manuell eingeben oder erneut scannen';
+                    resumeScanner();
+                }, 2500);
+
+            } catch (error) {
+                console.error('❌ Backend lookup error:', error);
+                console.error('Error details:', {
+                    message: error.message,
+                    stack: error.stack
+                });
+                
+                scanStatus.textContent = 'Fehler beim Abrufen - Backend nicht erreichbar';
+                setTimeout(() => {
+                    scanStatus.textContent = 'Bitte manuell eingeben oder erneut scannen';
+                    resumeScanner();
+                }, 2500);
+            }
+        }
+
+        // Show Product Modal with Found Data
+        function showProductModal(product) {
+            lastScannedProduct = product;
+
+            document.getElementById('product-name').textContent = product.name;
+            document.getElementById('product-energy').textContent = product.energy ? product.energy.toFixed(0) : '-';
+            document.getElementById('product-protein').textContent = product.protein ? product.protein.toFixed(1) : '-';
+            document.getElementById('product-carbs').textContent = product.carbs ? product.carbs.toFixed(1) : '-';
+            document.getElementById('product-fat').textContent = product.fat ? product.fat.toFixed(1) : '-';
+            document.getElementById('product-quantity').value = '100';
+
+            productModal.classList.remove('hidden');
+            scanStatus.textContent = 'Product found!';
+        }
+
+        // Add Scanned Food to Tracker
+        addScannedFoodBtn.addEventListener('click', () => {
+            if (!lastScannedProduct) return;
+
+            const quantity = parseFloat(document.getElementById('product-quantity').value) || 100;
+            const multiplier = quantity / 100;
+
+            const foodItem = {
+                name: lastScannedProduct.name,
+                barcode: lastScannedProduct.barcode,
+                calories: Math.round(lastScannedProduct.energy * multiplier),
+                quantity: quantity,
+                protein: (lastScannedProduct.protein * multiplier).toFixed(1),
+                carbs: (lastScannedProduct.carbs * multiplier).toFixed(1),
+                fat: (lastScannedProduct.fat * multiplier).toFixed(1)
+            };
+
+            // Add to app
+            app.addFood(foodItem);
+
+            // Show success feedback
+            const originalText = addScannedFoodBtn.textContent;
+            addScannedFoodBtn.textContent = '✓ Added!';
+            addScannedFoodBtn.classList.add('bg-emerald-600');
+
+            setTimeout(() => {
+                addScannedFoodBtn.textContent = originalText;
+                addScannedFoodBtn.classList.remove('bg-emerald-600');
+                productModal.classList.add('hidden');
+                lastScannedProduct = null;
+                lastScannedBarcode = null;
+                
+                // Resume scanner
+                resumeScanner();
+            }, 1500);
+        });
+
+        // Skip Product
+        skipProductBtn.addEventListener('click', () => {
+            productModal.classList.add('hidden');
+            lastScannedProduct = null;
+            lastScannedBarcode = null;
+            resumeScanner();
+        });
+
+        // Close Product Modal
+        closeProductModalBtn.addEventListener('click', () => {
+            productModal.classList.add('hidden');
+            resumeScanner();
+        });
+
+        // Resume Scanner
+        function resumeScanner() {
+            try {
+                if (!scannerActive) {
+                    Quagga.start();
+                    scannerActive = true;
+                    scanStatus.textContent = 'Scanning...';
+                    console.log('Scanner resumed');
+                }
+            } catch (error) {
+                console.error('Error resuming scanner:', error);
+                // Try reinitializing if resume fails
+                setTimeout(() => {
+                    initializeScanner();
+                }, 1000);
+            }
+        }
+
+        // Toggle Scanner
+        toggleCameraBtn.addEventListener('click', () => {
+            try {
+                if (scannerActive) {
+                    Quagga.stop();
+                    scannerActive = false;
+                    toggleCameraBtn.classList.add('opacity-50');
+                    scanStatus.textContent = 'Scanner paused';
+                    console.log('Scanner stopped');
+                } else {
+                    resumeScanner();
+                    toggleCameraBtn.classList.remove('opacity-50');
+                }
+            } catch (error) {
+                console.error('Error toggling scanner:', error);
+            }
+        });
+
+        // Close Scanner and Return to Main
+        closeCameraBtn.addEventListener('click', () => {
+            try {
+                if (scannerActive) {
+                    Quagga.stop();
+                    scannerActive = false;
+                }
+            } catch (error) {
+                console.error('Error stopping scanner:', error);
+            }
+            app.setCurrentDate(new Date().toISOString().split('T')[0]);
+            window.location.href = 'Main.html';
+        });
+
+        // Manual Entry Button
+        manualEntryBtn.addEventListener('click', () => {
+            entryModal.classList.remove('hidden');
+        });
+
+        // Close Modal
+        closeModalBtn.addEventListener('click', () => {
+            entryModal.classList.add('hidden');
+        });
+
+        // Close modal when clicking outside
+        entryModal.addEventListener('click', (e) => {
+            if (e.target === entryModal) {
+                entryModal.classList.add('hidden');
+            }
+        });
+
+        // Form Submission (Manual Entry)
+        foodForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const foodItem = {
+                name: document.getElementById('food-name').value,
+                calories: parseInt(document.getElementById('food-calories').value),
+                quantity: parseFloat(document.getElementById('food-quantity').value),
+                protein: parseFloat(document.getElementById('food-protein').value),
+                carbs: parseFloat(document.getElementById('food-carbs').value),
+                fat: parseFloat(document.getElementById('food-fat').value)
+            };
+
+            // Add food to app
+            app.addFood(foodItem);
+
+            // Show success feedback
+            const submitBtn = foodForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = '✓ Added!';
+            submitBtn.classList.add('bg-emerald-600');
+
+            setTimeout(() => {
+                submitBtn.textContent = originalText;
+                submitBtn.classList.remove('bg-emerald-600');
+                entryModal.classList.add('hidden');
+                foodForm.reset();
+                document.getElementById('food-calories').value = '0';
+                document.getElementById('food-quantity').value = '1';
+                document.getElementById('food-protein').value = '0';
+                document.getElementById('food-carbs').value = '0';
+                document.getElementById('food-fat').value = '0';
+
+                // Resume scanner or return to main
+                resumeScanner();
+            }, 1500);
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (scannerActive) {
+                Quagga.stop();
+            }
+        });
+    </script>
+</body>
+</html>
